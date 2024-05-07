@@ -1,201 +1,205 @@
 <!-- 热销商品图表 -->
 <template>
-  <div class='com-container'>
-    <div class='com-chart' ref='hot_ref'></div>
-    <span class="iconfont arr-left" @click="toLeft" :style="comStyle">&#xe6ef;</span>
-    <span class="iconfont arr-right" @click="toRight" :style="comStyle">&#xe6ed;</span>
+  <div class="com-container">
+    <div class="com-chart" ref="hot_ref"></div>
+    <span class="iconfont arr-left" @click="toLeft" :style="comStyle"
+      >&#xe6ef;</span
+    >
+    <span class="iconfont arr-right" @click="toRight" :style="comStyle"
+      >&#xe6ed;</span
+    >
     <span class="cat-name" :style="comStyle">{{ catName }}</span>
   </div>
 </template>
 
 <script>
-  import { mapState } from 'vuex'
+import { mapState } from "vuex";
 export default {
-  data () {
+  data() {
     return {
       chartInstance: null,
       allData: null,
       currentIndex: 0, // 当前所展示出的一级分类数据
-      titleFontSize: 0
-    }
+      titleFontSize: 0,
+    };
   },
   computed: {
-    catName () {
+    ...mapState(["theme"]),
+
+    catName() {
       if (!this.allData) {
-        return ''
+        return "";
       } else {
-        return this.allData[this.currentIndex].name
+        return this.allData[this.currentIndex].name;
       }
     },
-    comStyle () {
+    comStyle() {
       return {
-        fontSize: this.titleFontSize + 'px'
-      }
-    }
+        fontSize: this.titleFontSize + "px",
+      };
+    },
   },
-  created () {
+  created() {
     // 在组件创建完成之后 进行回调函数的注册
-    this.$socket.registerCallBack('hotproduct', this.getData)
+    this.$socket.registerCallBack("hotproduct", this.getData);
   },
-  mounted () {
-    this.initChart()
+  mounted() {
+    this.initChart();
     // this.getData()
     this.$socket.send({
-      action: 'getData',
-      socketType: 'hotproduct',
-      chartName: 'hotproduct',
-      value: ''
-    })
-        window.addEventListener('resize', this.screenAdapter)
-    this.screenAdapter()
+      action: "getData",
+      socketType: "hotproduct",
+      chartName: "hotproduct",
+      value: "",
+    });
+    window.addEventListener("resize", this.screenAdapter);
+    this.screenAdapter();
   },
-  destroyed () {
-    window.removeEventListener('resize', this.screenAdapter)
-    this.$socket.unRegisterCallBack('hotData')
-
-  },
-  computed: {
-    ...mapState(['theme'])
+  destroyed() {
+    window.removeEventListener("resize", this.screenAdapter);
+    this.$socket.unRegisterCallBack("hotData");
   },
   watch: {
-    theme () {
-      console.log('主题切换了')
-      this.chartInstance.dispose() // 销毁当前的图表
-      this.initChart() // 重新以最新的主题名称初始化图表对象
-      this.screenAdapter() // 完成屏幕的适配
-      this.updateChart() // 更新图表的展示
-    }
+    theme() {
+      this.chartInstance.dispose(); // 销毁当前的图表
+      this.initChart(); // 重新以最新的主题名称初始化图表对象
+      this.screenAdapter(); // 完成屏幕的适配
+      this.updateChart(); // 更新图表的展示
+    },
   },
   methods: {
-    initChart () {
-      this.chartInstance = this.$echarts.init(this.$refs.hot_ref, this.theme)
+    initChart() {
+      this.chartInstance = this.$echarts.init(this.$refs.hot_ref, this.theme);
       const initOption = {
         title: {
-          text: '▎ 热销商品的占比',
+          text: "▎ 热销商品的占比",
           left: 20,
-          top: 20
+          top: 20,
         },
         legend: {
-          top: '15%',
-          icon: 'circle'
+          top: "15%",
+          icon: "circle",
         },
         tooltip: {
           show: true,
-          formatter: arg => {
+          formatter: (arg) => {
             // console.log(arg)
-            const thirdCategory = arg.data.children
+            const thirdCategory = arg.data.children;
             // 计算出所有三级分类的数值总和
-            let total = 0
-            thirdCategory.forEach(item => {
-              total += item.value
-            })
-            let retStr = ''
-            thirdCategory.forEach(item => {
+            let total = 0;
+            thirdCategory.forEach((item) => {
+              total += item.value;
+            });
+            let retStr = "";
+            thirdCategory.forEach((item) => {
               retStr += `
-              ${item.name}:${parseInt(item.value / total * 100) + '%'}
+              ${item.name}:${parseInt((item.value / total) * 100) + "%"}
               <br/>
-              `
-            })
-            return retStr
-          }
+              `;
+            });
+            return retStr;
+          },
         },
         series: [
           {
-            type: 'pie',
+            type: "pie",
             label: {
-              show: false
+              show: false,
             },
             emphasis: {
               label: {
-                show: true
+                show: true,
               },
               labelLine: {
-                show: false
-              }
-            }
-          }
-        ]
-      }
-      this.chartInstance.setOption(initOption)
+                show: false,
+              },
+            },
+          },
+        ],
+      };
+      this.chartInstance.setOption(initOption);
     },
-    getData (ret) {
+    getData(ret) {
       // 获取服务器的数据, 对this.allData进行赋值之后, 调用updateChart方法更新图表
       // const { data: ret } = await this.$http.get('hotproduct')
-      this.allData = ret
-      console.log(this.allData)
-      this.updateChart()
+      this.allData = ret;
+      this.updateChart();
     },
-    updateChart () {
+    updateChart() {
       // 处理图表需要的数据
-      const legendData = this.allData[this.currentIndex].children.map(item => {
-        return item.name
-      })
-      const seriesData = this.allData[this.currentIndex].children.map(item => {
-        return {
-          name: item.name,
-          value: item.value,
-          children: item.children // 新增加children的原因是为了在tooltip中的formatter的回调函数中,来拿到这个二级分类下的三级分类数据
+      const legendData = this.allData[this.currentIndex].children.map(
+        (item) => {
+          return item.name;
         }
-      })
+      );
+      const seriesData = this.allData[this.currentIndex].children.map(
+        (item) => {
+          return {
+            name: item.name,
+            value: item.value,
+            children: item.children, // 新增加children的原因是为了在tooltip中的formatter的回调函数中,来拿到这个二级分类下的三级分类数据
+          };
+        }
+      );
       const dataOption = {
         legend: {
-          data: legendData
+          data: legendData,
         },
         series: [
           {
-            data: seriesData
-          }
-        ]
-      }
-      this.chartInstance.setOption(dataOption)
+            data: seriesData,
+          },
+        ],
+      };
+      this.chartInstance.setOption(dataOption);
     },
-    screenAdapter () {
-      this.titleFontSize = this.$refs.hot_ref.offsetWidth / 100 * 3.6
+    screenAdapter() {
+      this.titleFontSize = (this.$refs.hot_ref.offsetWidth / 100) * 3.6;
       const adapterOption = {
         title: {
           textStyle: {
-            fontSize: this.titleFontSize
-          }
+            fontSize: this.titleFontSize,
+          },
         },
         legend: {
-          itemWidth: this.titleFontSize ,
-          itemHeight: this.titleFontSize ,
+          itemWidth: this.titleFontSize,
+          itemHeight: this.titleFontSize,
           itemGap: this.titleFontSize / 2,
           textStyle: {
-            fontSize: this.titleFontSize / 2
-          }
+            fontSize: this.titleFontSize / 2,
+          },
         },
         series: [
           {
             radius: this.titleFontSize * 4.5,
-            center: ['50%', '60%']
-          }
-        ]
-      }
-      this.chartInstance.setOption(adapterOption)
-      this.chartInstance.resize()
+            center: ["50%", "60%"],
+          },
+        ],
+      };
+      this.chartInstance.setOption(adapterOption);
+      this.chartInstance.resize();
     },
-    toLeft () {
-      this.currentIndex--
+    toLeft() {
+      this.currentIndex--;
       if (this.currentIndex < 0) {
-        this.currentIndex = this.allData.length - 1
+        this.currentIndex = this.allData.length - 1;
       }
-      this.updateChart()
+      this.updateChart();
     },
-    toRight () {
-      this.currentIndex++
+    toRight() {
+      this.currentIndex++;
       if (this.currentIndex > this.allData.length - 1) {
-        this.currentIndex = 0
+        this.currentIndex = 0;
       }
-      this.updateChart()
-    }
-  }
-}
+      this.updateChart();
+    },
+  },
+};
 </script>
 
-<style lang='less' scoped>
+<style lang="less" scoped>
 .arr-left {
-  position:absolute;
+  position: absolute;
   left: 10%;
   top: 50%;
   transform: translateY(-50%);
@@ -203,7 +207,7 @@ export default {
   color: white;
 }
 .arr-right {
-  position:absolute;
+  position: absolute;
   right: 10%;
   top: 50%;
   transform: translateY(-50%);
@@ -211,7 +215,7 @@ export default {
   color: white;
 }
 .cat-name {
-  position:absolute;
+  position: absolute;
   left: 80%;
   bottom: 20px;
   color: white;
