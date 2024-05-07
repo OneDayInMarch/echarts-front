@@ -1,0 +1,10 @@
+# 忽略编译生成的文件
+build/
+dist/
+
+# 忽略依赖库
+node_modules/
+
+# 忽略临时文件
+.tmp/
+.DS_Store
